@@ -1,13 +1,11 @@
 Configure the post-build hook and launch it on Heroku:
 
 ```
-$ git clone git://gist.github.com/1911084.git jenkins-comments
-$ cd jenkins-comments
 $ heroku create --stack cedar
 $ heroku config:add NODE_ENV=production
-$ heroku config:add GITHUB_USER_LOGIN=...
-$ heroku config:add GITHUB_USER_PASSWORD=...
-$ heroku config:add JENKINS_URL=...
+$ heroku config:add GITHUB_USER_LOGIN=youruser
+$ heroku config:add GITHUB_USER_PASSWORD=yourpassword
+$ heroku config:add JENKINS_URL=http://yourjenkinsurl.com
 $ git push heroku master
 $ heroku ps:scale web=1
 ```
@@ -16,13 +14,14 @@ Then configure your Jenkins job to call the post-build hook to report
 job status:
 
 ```
-$ curl "http://your.herokuapp.com/jenkins/post_build?\
-    user=$GITHUB_USER\
-    &repo=$GITHUB_REPO\
-    &sha=$GIT_COMMIT\
-    &status=$BUILD_STATUS\
-    &job=$BUILD_NUMBER"
+curl --data-urlencode out@${WORKSPACE}/report/progress.xml "http://yourapp.herokuapp.com/jenkins/post_build\
+?user=yourusername\
+&repo=yourreponame\
+&sha=$GIT_COMMIT\
+&status=$BUILD_STATUS\
+&job=$BUILD_NUMBER"
 ```
 
-You'll have to specify `GITHUB_USER`, `GITHUB_REPO`, and your build
-should set `BUILD_STATUS=success` if the build succeeded.
+With the Jenkins EnvInject Plugin, under Build > Inject environemnt variables > Properties Content, set `BUILD_STATUS` to `success` (this will only be set if the build succeeds):
+
+	BUILD_STATUS=success
