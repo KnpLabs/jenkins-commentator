@@ -1,10 +1,6 @@
 # Usage:
 
-async   = require 'async'
-request = require 'request'
 express = require 'express'
-_       = require 'underscore'
-_s      = require 'underscore.string'
 
 PullRequestCommenter = require('./PullRequestCommenter.coffee').PullRequestCommenter
 
@@ -12,11 +8,11 @@ app = module.exports = express.createServer()
 app.use(express.bodyParser());
 
 app.configure 'development', ->
-  app.set "port", 3000
+  app.set 'port', 3000
 
 app.configure 'production', ->
   app.use express.errorHandler()
-  app.set "port", parseInt process.env.PORT
+  app.set 'port', parseInt process.env.PORT
 
 # Jenkins lets us know when a build has failed or succeeded.
 app.post '/jenkins/post_build', (req, res) ->

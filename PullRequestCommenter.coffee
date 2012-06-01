@@ -1,3 +1,8 @@
+async   = require 'async'
+request = require 'request'
+_       = require 'underscore'
+_s      = require 'underscore.string'
+
 class exports.PullRequestCommenter
   BUILDREPORT = "**Build Status**:"
 
@@ -6,6 +11,10 @@ class exports.PullRequestCommenter
     @api = "https://#{process.env.GITHUB_USER_LOGIN}:#{process.env.GITHUB_USER_PASSWORD}@api.github.com"
 
   post: (path, obj, cb) =>
+    request.post { uri: "#{@api}#{path}", json: obj }, (e, r, body) ->
+      cb e, body
+
+  patch: (path, obj, cb) =>
     request.post { uri: "#{@api}#{path}", json: obj }, (e, r, body) ->
       cb e, body
 
@@ -30,7 +39,12 @@ class exports.PullRequestCommenter
   getPull: (id, cb) =>
     @get "/repos/#{@user}/#{@repo}/pulls/#{id}", cb
 
+  setPullTitle: (issue, title) =>
+    @patch "/repos/#{@user}/#{@repo}/pulls/#{issue}", ('title': title), (e, body) ->
+      console.log e if e?
+
   commentOnIssue: (issue, comment) =>
+    console.log "Commenting on issue #{issue}"
     @post "/repos/#{@user}/#{@repo}/issues/#{issue}/comments", (body: comment), (e, body) ->
       console.log e if e?
 
@@ -63,13 +77,22 @@ class exports.PullRequestCommenter
   makePullComment: (pull, cb) =>
     comment = if @succeeded then @successComment() else @errorComment()
     @commentOnIssue pull.number, comment
-    cb()
+    return cb pull
+
+  updatePullTitle: (pull, cb) =>
+    prefix = if @succeeded then '[Tests pass] ' else '[Tests fail] '
+    if pull.title.match /\[Tests (fail|pass)\] /
+      title = pull.title.replace(/\[Tests (fail|pass)\] /, prefix)
+    else
+      title = prefix + pull.title
+    console.log(title)
+    @setPullTitle pull.number, title
+    return cb()
 
   updateComments: (cb) ->
     async.waterfall [
       @getPulls
       @findMatchingPull
-#     We don't want that
-#      @removePreviousPullComments
       @makePullComment
+      @updatePullTitle
     ], cb
